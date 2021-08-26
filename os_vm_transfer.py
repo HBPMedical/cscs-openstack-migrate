@@ -254,7 +254,7 @@ class OSVM:
         res = self.__get_os_cmd_result(cloud, 'server stop %s' %(vm))
         print('    Waiting for server %s to stop...' %(vm))
         res = self.__poll(cloud, 'server show %s' %(vm), 'Value', 'SHUTOFF', 'Field', 'status', self.__polling_timeout)
-        if result:
+        if res:
             result = True
             print('    Server %s stopped successfully.' %(vm))
 
@@ -609,6 +609,8 @@ class OSVM:
         if not self.__keep and (self.__image_id is not None or self.__newvol_id is not None or self.__snap_id is not None):
             go_ahead = self.__clean_up(self.__export_cloud, self.__image_id, self.__newvol_id, self.__snap_id)
 
+        return go_ahead
+
     def __import(self):
         print('Preparing import of VM %s (file %s) in cloud %s...' %(self.__vm_name, self.__image_file, self.__import_cloud))
 
@@ -626,23 +628,33 @@ class OSVM:
         if not self.__keep and self.__image_id is not None:
             go_ahead = self.__clean_up(self.__import_cloud, self.__image_id)
 
+        return go_ahead
+
     def run(self):
+        result = False
+
         if self.__action is not None:
             if self.__action == 'export':
-                self.__export()
+                result = self.__export()
             elif self.__action == 'import':
-                self.__import()
+                result = self.__import()
             elif self.__action == 'transfer':
-                self.__export()
+                result = self.__export()
 
                 self.__volume_id = None
                 self.__snap_id = None
                 self.__newvol_id = None
                 self.__image_id = None
 
-                self.__import()
+                if result:
+                    self.__import()
         else:
             sys.exit('No action can be done!')
+
+        if result:
+            print('done')
+        else:
+            print('FAILED!')
 
 def main():
     osvm = OSVM()
