@@ -5,6 +5,7 @@ polling_sleep_time = 10
 polling_timeout = 600
 default_min_ram = 2048
 default_min_disk = 40
+external_network = 'ext-net1'
 
 import os
 import sys
@@ -45,6 +46,7 @@ class OSVM:
     __vm_name = None
     __volume_id = None
     __snap_id = None
+    __vm_id = None
     __vm_size = None
     __newvol_id = None
     __image_id = None
@@ -182,7 +184,7 @@ class OSVM:
     def __get_os_cmd_result(self, cloud, cmd, params):
         result = None
 
-        no_format_cmds = ['volume delete', 'volume snapshot delete', 'image save', 'image delete']
+        no_format_cmds = ['volume delete', 'volume snapshot delete', 'image save', 'image delete', 'floating ip set']
 
         tmp_params = []
         if cmd not in no_format_cmds:
@@ -655,6 +657,51 @@ class OSVM:
         else:
             result = False
 
+        if result:
+            self.__vm_id = vm_id
+
+        return result
+
+    def __assign_floating(self, cloud, vm_id, floating_subnet):
+        result = False
+
+        self.__subnet_names = None
+        self.__ips = None
+        self.__get_vm_info(cloud, vm_id)
+
+        subnet_names = None
+        ips = None
+        if self.__subnet_names is not None and self.__subnet_names != '':
+            subnet_names = self.__subnet_names.split(',')
+        if self.__ips is not None and self.__ips != '':
+            ips = self.__ips.split(',')
+
+        fixed_ip = None
+        if ips is not None and subnet_names is not None and len(ips) == len(subnet_names):
+            i = 0
+            for subnet_name in subnet_names:
+                if subnet_name == floating_subnet:
+                    fixed_ip = ips[i]
+                i += 1
+        port_id = None
+        if fixed_ip is not None and fixed_ip != '':
+            port_id = self.__get_os_cmd_result(cloud, 'port list', ['--server %s' %(vm_id), '--network %s' %(floating_subnet)])[0]['ID']
+
+        floating_ip = None
+        floating_ips = self.__get_os_cmd_result(cloud, 'floating ip list', ['--status DOWN'])
+        if len(floating_ips) > 0:
+            floating_ip = floating_ips[0]['Floating IP Address']
+        if floating_ip is None:
+            floating_ip = self.__get_os_cmd_result(cloud, 'floating ip create', [external_network])['floating_ip_address']
+
+        if floating_ip is not None and fixed_ip is not None and port_id is not None:
+            print('    Assigning floating IP %s to server %s, on its NIC %s (port ID %s), on subnet %s...' %(floating_ip, self.__vm_name, fixed_ip, port_id, floating_subnet))
+            self.__get_os_cmd_result(cloud, 'floating ip set', ['--fixed-ip-address %s' %(fixed_ip), '--port %s' %(port_id), floating_ip])
+
+            check = self.__get_os_cmd_result(cloud, 'floating ip list', ['--fixed-ip-address %s' %(fixed_ip)])
+            if check is not None and len(check) > 0:
+                result = True
+
         return result
 
     def __clean_up(self, cloud, image_id=None, newvol_id=None, snap_id=None):
@@ -740,11 +787,15 @@ class OSVM:
         if self.__image_file is not None and self.__image_format is not None and self.__min_ram is not None and self.__min_disk is not None and self.__vm_name is not None and self.__image_id is None:
             go_ahead = self.__import_image(self.__import_cloud, self.__vm_name, self.__image_file, self.__image_format, self.__min_ram, self.__min_disk)
 
-        if self.__vm_name is not None and self.__min_disk is not None and self.__image_id is not None and self.__volume_id is None:
+        if go_ahead and self.__vm_name is not None and self.__min_disk is not None and self.__image_id is not None and self.__volume_id is None:
             go_ahead = self.__create_image_volume(self.__import_cloud, self.__vm_name, self.__image_id, self.__min_disk)
 
-        if self.__vm_name is not None and self.__volume_id is not None and self.__key_name is not None and self.__security_groups is not None and self.__flavor_name is not None and self.__subnet_names is not None:
+        if go_ahead and self.__vm_name is not None and self.__volume_id is not None and self.__key_name is not None and self.__security_groups is not None and self.__flavor_name is not None and self.__subnet_names is not None:
             go_ahead = self.__create_vm(self.__import_cloud, self.__vm_name, self.__volume_id, self.__key_name, self.__security_groups, self.__flavor_name, self.__subnet_names, self.__ips)
+
+        if go_ahead and self.__vm_id is not None:
+            if self.__has_floating and self.__floating_subnet is not None:
+                go_ahead = self.__assign_floating(self.__import_cloud, self.__vm_id, self.__floating_subnet)
 
         if not self.__keep and self.__image_id is not None:
             go_ahead = self.__clean_up(self.__import_cloud, self.__image_id)
