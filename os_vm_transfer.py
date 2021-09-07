@@ -202,7 +202,7 @@ class OSVM:
             result = res
             if verbose_level >= 3:
                 dt = datetime.datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
-                print('    %s: %s checksum: %s', %(dt, filename, result)
+                print('    %s: %s checksum: %s' %(dt, filename, result))
             elif verbose_level >= 2:
                 print('')
 
