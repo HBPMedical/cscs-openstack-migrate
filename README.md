@@ -22,7 +22,7 @@ Once these commands work like a charm, you're ready for the next step!
 The default transfer command is
 
 ```
-./os_vm_transfer.py --os-export-cloud <POLLUX_PROJECT> --os-import-cloud <CASTOR_PROJECT> --vm <VM>
+./os_vm_transfer.py --export-cloud <POLLUX_PROJECT> --import-cloud <CASTOR_PROJECT> --vm <VM>
 ```
 
 It will:
