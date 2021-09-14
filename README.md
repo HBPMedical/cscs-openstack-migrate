@@ -33,12 +33,14 @@ It will:
   * Create a volume snapshot (in case of boot volume) or a server snapshot
   * Create a new volume from the snapshot
   * Create an image from the snapshot
-  * Save the image as a file
+  * Save the image as a *QCOW2* file
   * Compare the checksum of the saved image with the source image
+  * If the checksum matches, it cleans (except if you passed --keep) the image, the new volume, and the volume snapshot
 * Import (on Castor)
-  * Create an image from the file
+  * Create an image from the *QCOW2* file
   * Compare the checksum of the image with the source file
   * Create a boot volume from the image
+  * If all the steps were ok, it cleans (except if you passed --keep) the image, but **NOT** the *QCOW2* file!
   * Create the server from the boot volume, with the same subnet, IP address, name, flavor... that was on Pollux
   * If the machine HAD a floating IP on Pollux, it will do what it takes to get a NEW one on the VM on Castor. If a floating is available, it will connect it. Otherwise, it will first allocate a new floating to the project, then connect it.
 
