@@ -44,5 +44,9 @@ It will:
   * If the machine HAD a floating IP on Pollux, it will do what it takes to get a NEW one on the VM on Castor. If a floating is available, it will connect it. Otherwise, it will first allocate a new floating to the project, then connect it.
   * If all the steps were ok, it cleans (except if you passed --keep) the image, but **NOT** the *QCOW2* file!
 
+If you had the VM connected to a subnet with an IP on Pollux, it will connect it to the same subnet, with the same IP on Castor. Just make sure it exists prior to running the script.
+
 As we use it for our own needs, maybe it doesn't precisely fits yours. Feel free to suggest modifications or to fork it, then propose a pull request.
-We don't have multiple network interfaces per VM or multiple security groups (even if it should work). If you had the VM connected to a subnet with an IP on Pollux, it will connect it to the same subnet, with the same IP on Castor. Just make sure it exists prior to running the script.
+* We don't have multiple network interfaces per VM
+* We don't have multiple security groups per VM (but it should work, as it was coded this way)
+* We don't have multiple volumes attached to a server
